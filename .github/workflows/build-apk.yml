@@ -1,0 +1,48 @@
+name: Build Android APK
+on: 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install & Build Web
+        run: |
+          cd Chronos
+          npm install
+          npm run build
+
+      - name: Generate Android Project
+        run: |
+          cd Chronos
+          npx cap add android
+          mkdir -p android/app/src/main/java/com/chronos/survival3d/
+          cp android-plugin/LanServerPlugin.java android/app/src/main/java/com/chronos/survival3d/
+          cp android-plugin/MainActivity.java android/app/src/main/java/com/chronos/survival3d/
+          npx cap sync android
+
+      - name: Build APK (Gradle)
+        working-directory: ./Chronos/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chronos.apk
+          path: Chronos/android/app/build/outputs/apk/debug/app-debug.apk
