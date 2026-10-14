@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>CHRONOS</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #000; color: #eee; }
+    #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    .screen { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(16,24,32,0.92), rgba(5,8,12,0.98)); padding: 20px; }
+    .hidden { display: none !important; }
+    h1 { font-size: 42px; letter-spacing: 8px; color: #38bdf8; text-shadow: 0 0 20px rgba(56,189,248,0.5); margin-bottom: 4px; font-weight: 900; }
+    .subtitle { font-size: 12px; color: #94a3b8; margin-bottom: 20px; letter-spacing: 2px; text-transform: uppercase; }
+    .menu-box { background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 12px; padding: 16px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+    button { background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: 1px solid #38bdf8; padding: 12px 14px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    button:active { background: #0ea5e9; transform: scale(0.97); }
+    button.secondary { background: rgba(30,41,59,0.9); border-color: #475569; }
+    button.danger { background: rgba(220,38,38,0.85); border-color: #f87171; }
+    input, select { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 11px; border-radius: 8px; font-size: 14px; width: 100%; }
+    .info-row { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.08); align-items: center; }
+    .server-list { max-height: 110px; overflow-y: auto; background: #090d16; border-radius: 6px; padding: 6px; border: 1px solid #1e293b; }
+    .server-item { padding: 6px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+
+    #hud { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+    #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(255,255,255,0.85); box-shadow: 0 0 4px #000; }
+    #top-bars { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 5px; width: 160px; }
+    .stat-bar { height: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden; position: relative; }
+    .stat-fill { height: 100%; width: 100%; transition: width 0.15s; }
+    .stat-label { position: absolute; inset: 0; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-shadow: 0 1px 2px #000; }
+    #top-info { position: absolute; top: 10px; right: 10px; text-align: right; font-size: 10px; background: rgba(0,0,0,0.6); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); pointer-events: auto; }
+    
+    #top-hud-buttons { position: absolute; top: 10px; right: 145px; display: flex; gap: 6px; pointer-events: auto; }
+    .hud-icon-btn { padding: 6px 10px; font-size: 11px; border-radius: 6px; background: rgba(15,23,42,0.85); border: 1px solid #38bdf8; }
+
+    #joystick-zone { position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.22); pointer-events: auto; }
+    #joystick-knob { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; border-radius: 50%; background: rgba(56,189,248,0.75); border: 2px solid #fff; pointer-events: none; }
+    #look-zone { position: absolute; top: 0; right: 0; width: 55vw; height: 100vh; pointer-events: auto; }
+    
+    #action-buttons { position: absolute; bottom: 20px; right: 20px; width: 160px; height: 140px; pointer-events: none; }
+    .act-btn { position: absolute; pointer-events: auto; border-radius: 50%; background: rgba(15,23,42,0.8); border: 2px solid rgba(56,189,248,0.6); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .act-btn:active { background: rgba(56,189,248,0.85); color: #000; transform: scale(0.93); }
+    #btn-attack { width: 68px; height: 68px; bottom: 10px; right: 10px; background: rgba(220,38,38,0.75); border-color: #f87171; }
+    #btn-use { width: 56px; height: 56px; bottom: 76px; right: 80px; background: rgba(22,163,74,0.75); border-color: #4ade80; }
+    #btn-jump { width: 56px; height: 56px; bottom: 12px; right: 88px; }
+
+    #hotbar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: auto; background: rgba(15,23,42,0.85); padding: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); }
+    .hslot { width: 44px; height: 44px; border-radius: 6px; background: rgba(0,0,0,0.6); border: 2px solid #334155; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 9px; position: relative; }
+    .hslot.active { border-color: #38bdf8; box-shadow: 0 0 8px rgba(56,189,248,0.6); background: rgba(14,116,144,0.35); }
+    .slot-name { font-weight: 700; color: #e2e8f0; font-size: 8px; line-height: 1.0; overflow: hidden; }
+    .slot-cnt { align-self: flex-end; color: #38bdf8; font-weight: 800; }
+
+    .modal-panel { position: absolute; inset: 20px 30px; z-index: 30; background: rgba(10,15,28,0.96); border: 1px solid #38bdf8; border-radius: 12px; display: flex; flex-direction: column; padding: 12px; pointer-events: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #1e293b; }
+    .modal-body { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-top: 10px; gap: 10px; }
+    .inv-container { display: grid; grid-template-columns: 1.2fr 1.2fr; gap: 12px; height: 100%; overflow: hidden; }
+    .inv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-content: start; overflow-y: auto; max-height: 260px; }
+    .craft-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 280px; }
+    .craft-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 6px 8px; border-radius: 6px; font-size: 11px; }
+    #rts-canvas { width: 100%; height: 240px; background: #090d16; border-radius: 8px; border: 1px solid #334155; }
+  </style>
+  <script type="module" crossorigin src="./assets/index-BR51XTs4.js"></script>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <div id="menu-main" class="screen">
+    <h1 id="txt-title">CHRONOS</h1>
+    <div id="txt-subtitle" class="subtitle">Civilization Survival 3D</div>
+    <div class="menu-box">
+      <input id="inp-seed" type="number" placeholder="World Seed (e.g. 2026)" value="2026" />
+      <button id="btn-singleplayer">Singleplayer</button>
+      <button id="btn-create-lan">Create LAN Game</button>
+      <button id="btn-join-lan">Join LAN Game</button>
+      <button id="btn-settings" class="secondary">Settings</button>
+    </div>
+  </div>
+
+  <div id="menu-host" class="screen hidden">
+    <h1>LAN HOST</h1>
+    <div class="menu-box">
+      <div class="info-row"><span>Game Name:</span><strong id="host-name">Chronos Alpha</strong></div>
+      <div class="info-row"><span>Local IP:</span><strong id="host-ip" style="color:#4ade80;">Detecting...</strong></div>
+      <div class="info-row"><span>Port:</span><strong id="host-port">7777</strong></div>
+      <div class="info-row"><span>Players:</span><strong id="host-players-cnt">1 / 8</strong></div>
+      <button id="btn-host-start">START GAME</button>
+      <button id="btn-host-back" class="secondary">Back</button>
+    </div>
+  </div>
+
+  <div id="menu-join" class="screen hidden">
+    <h1>JOIN LAN</h1>
+    <div class="menu-box">
+      <div style="font-size:11px; color:#94a3b8;">Discovered LAN Hosts (UDP 7778):</div>
+      <div id="discovered-list" class="server-list">
+        <div style="color:#64748b; font-size:11px; padding:6px;">Scanning local Wi-Fi...</div>
+      </div>
+      <input id="inp-join-ip" type="text" placeholder="192.168.1." value="192.168.1." style="margin-top:4px;" />
+      <button id="btn-connect-ip">Connect to IP</button>
+      <button id="btn-join-back" class="secondary">Back</button>
+    </div>
+  </div>
+
+  <div id="menu-settings" class="screen hidden">
+    <h1>SETTINGS</h1>
+    <div class="menu-box">
+      <div class="info-row"><span>Language / Язык / Тіл:</span>
+        <select id="sel-lang" style="width:120px; background:#0f172a; color:#fff; padding:4px; border-radius:4px;">
+          <option value="en">English</option>
+          <option value="ru" selected>Русский</option>
+          <option value="kk">Қазақша</option>
+          <option value="de">Deutsch</option>
+        </select>
+      </div>
+      <div class="info-row"><span>Render Distance:</span>
+        <select id="sel-viewdist" style="width:120px; background:#0f172a; color:#fff; padding:4px; border-radius:4px;">
+          <option value="2">Low (2)</option>
+          <option value="3" selected>Medium (3)</option>
+          <option value="4">High (4)</option>
+        </select>
+      </div>
+      <button id="btn-clear-save" class="secondary danger">Delete Saved World</button>
+      <button id="btn-settings-back">Save & Return</button>
+    </div>
+  </div>
+
+  <div id="menu-pause" class="screen hidden">
+    <h1>PAUSE</h1>
+    <div class="menu-box">
+      <button id="btn-pause-resume">Resume</button>
+      <button id="btn-pause-inv" class="secondary">Inventory & Craft</button>
+      <button id="btn-pause-map" class="secondary">Strategic Map & RTS</button>
+      <button id="btn-pause-save" class="secondary">Save World</button>
+      <button id="btn-pause-leave" class="danger">Leave Game</button>
+    </div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="crosshair"></div>
+    <div id="top-bars">
+      <div class="stat-bar"><div id="bar-hp" class="stat-fill" style="background:#ef4444;"></div><div id="lbl-hp-text" class="stat-label">HEALTH</div></div>
+      <div class="stat-bar"><div id="bar-hg" class="stat-fill" style="background:#f59e0b;"></div><div id="lbl-hg-text" class="stat-label">HUNGER</div></div>
+      <div class="stat-bar"><div id="bar-st" class="stat-fill" style="background:#38bdf8;"></div><div id="lbl-st-text" class="stat-label">STAMINA</div></div>
+    </div>
+
+    <div id="top-hud-buttons">
+      <button id="btn-hud-inv" class="hud-icon-btn">BAG</button>
+      <button id="btn-hud-map" class="hud-icon-btn">MAP</button>
+      <button id="btn-hud-pause" class="hud-icon-btn">PAUSE</button>
+    </div>
+
+    <div id="top-info">
+      <div id="lbl-mode">SINGLEPLAYER</div>
+      <div id="lbl-coords">Pos: X:0 Z:0 (Dir: N)</div>
+      <div id="lbl-biome">Biome: Plains</div>
+      <div id="lbl-time">08:00 (Day)</div>
+    </div>
+
+    <div id="joystick-zone"><div id="joystick-knob"></div></div>
+    <div id="look-zone"></div>
+
+    <div id="action-buttons">
+      <div id="btn-attack" class="act-btn">ATTACK</div>
+      <div id="btn-use" class="act-btn">USE / PLANT</div>
+      <div id="btn-jump" class="act-btn">JUMP</div>
+    </div>
+
+    <div id="hotbar"></div>
+  </div>
+
+  <div id="modal-inv" class="modal-panel hidden">
+    <div class="modal-header">
+      <strong style="color:#38bdf8;">INVENTORY & AGRICULTURE</strong>
+      <button id="btn-close-inv" class="secondary" style="padding:4px 10px; font-size:11px;">CLOSE [X]</button>
+    </div>
+    <div class="modal-body">
+      <div class="inv-container">
+        <div>
+          <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Slots (Tap to equip in Hotbar):</div>
+          <div id="inv-grid" class="inv-grid"></div>
+          <button id="btn-drop" class="secondary" style="margin-top:6px; font-size:11px; padding:6px;">Drop Selected</button>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">Crafting & Agriculture Recipes:</div>
+          <div id="craft-list" class="craft-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-map" class="modal-panel hidden">
+    <div class="modal-header">
+      <strong style="color:#38bdf8;">STRATEGIC CIVILIZATION MAP & RTS</strong>
+      <button id="btn-close-map" class="secondary" style="padding:4px 10px; font-size:11px;">CLOSE [X]</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:11px; color:#94a3b8;">World Map (Tap to command army or inspect active civilizations & biomes):</div>
+      <canvas id="rts-canvas"></canvas>
+      <div id="tribe-info-box" style="font-size:11px; background:#111827; padding:8px; border-radius:6px; max-height:120px; overflow-y:auto; border:1px solid #1e293b;"></div>
+    </div>
+  </div>
+
+</body>
+</html>
